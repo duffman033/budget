@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestionnaire de Budget PWA</title>
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+
+    <!-- Theme Color for PWA -->
+    <meta name="theme-color" content="#3b82f6">
+
+    <link rel="icon" href="assets/images/icon/favicon.ico" type="image/x-icon">
+
+    <link rel="stylesheet" href="assets/style.css">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+</head>
+<body>
+
+<div id="app-container" class="container mx-auto p-4 md:p-6 max-w-5xl">
+    <header class="text-center mb-6">
+        <h1 class="text-3xl md:text-4xl font-bold">Mon Budget Personnel</h1>
+        <p class="mt-1" style="color: var(--muted-text-color);">Gérez vos finances, feuille par feuille.</p>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="flex justify-center border-b bg-white rounded-t-lg shadow-sm mb-6" style="background-color: var(--card-bg-color); border-color: var(--border-color);">
+        <button id="tab-synthèse" class="nav-tab active">Synthèse</button>
+        <button id="tab-revenus" class="nav-tab">Revenus</button>
+        <button id="tab-dépenses-fixes" class="nav-tab">Dépenses Fixes</button>
+        <button id="tab-paramètres" class="nav-tab">Paramètres</button>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main>
+        <!-- Tab: Synthèse -->
+        <div id="content-synthèse" class="tab-content">
+            <div class="card flex flex-col md:flex-row justify-between items-center gap-4">
+                <div>
+                    <label for="sheet-selector" class="font-semibold">Feuille de calcul :</label>
+                    <select id="sheet-selector" class="mt-1"></select>
+                </div>
+                <div>
+                    <label for="starting-balance-input" class="font-semibold">Solde de départ / Découvert (€) :</label>
+                    <input type="number" id="starting-balance-input" step="0.01" class="mt-1" placeholder="-256,00">
+                </div>
+                <button id="new-sheet-btn" class="btn btn-secondary w-full md:w-auto self-end">Créer une feuille</button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div class="card text-center">
+                    <h2 class="text-lg font-semibold" style="color: var(--muted-text-color);">Revenus du mois</h2>
+                    <p id="summary-income" class="summary-value text-blue-600">0.00 €</p>
+                </div>
+                <div id="total-expenses-card" class="card text-center cursor-pointer hover:shadow-lg transition-shadow">
+                    <h2 class="text-lg font-semibold" style="color: var(--muted-text-color);">Dépenses du mois</h2>
+                    <p id="summary-total-expenses" class="summary-value text-red-500">0.00 €</p>
+                    <span class="text-xs" style="color: var(--muted-text-color);">Cliquez pour le détail</span>
+                </div>
+                <div id="summary-balance-card" class="card text-center">
+                    <h2 id="summary-balance-label" class="text-lg font-semibold" style="color: var(--muted-text-color);">Solde Final</h2>
+                    <p id="summary-balance" class="summary-value">0.00 €</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="card">
+                    <h2 class="text-xl font-bold mb-4">Revenus Variables (ce mois-ci)</h2>
+                    <ul id="variable-incomes-list" class="space-y-3"></ul>
+                </div>
+                <div class="card">
+                    <h2 class="text-xl font-bold mb-4">Dépenses Variables (ce mois-ci)</h2>
+                    <form id="variable-expense-form" class="flex flex-col sm:flex-row items-center gap-2 mb-4">
+                        <input type="text" id="variable-expense-name-input" placeholder="Nom (ex: Courses)" class="flex-grow" required>
+                        <input type="number" id="variable-expense-amount-input" placeholder="Montant" step="0.01" class="w-full sm:w-32" required>
+                        <button type="submit" class="btn btn-primary w-full sm:w-auto">Ajouter</button>
+                    </form>
+                    <ul id="variable-expenses-list" class="space-y-2"></ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Revenus -->
+        <div id="content-revenus" class="tab-content hidden">
+            <div class="card">
+                <h2 class="text-xl font-bold mb-4">Gérer les sources de revenus</h2>
+                <form id="income-form" class="flex flex-col sm:flex-row items-center gap-4 mb-4">
+                    <input type="text" id="income-name-input" placeholder="Nom (ex: Salaire)" class="flex-grow" required>
+                    <input type="number" id="income-amount-input" placeholder="Montant (si fixe)" step="0.01" class="w-full sm:w-32">
+                    <div class="flex items-center gap-2">
+                        <input type="checkbox" id="income-type-checkbox" class="h-5 w-5 rounded text-blue-600 focus:ring-blue-500 border-gray-300">
+                        <label for="income-type-checkbox">Revenu Fixe</label>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-full sm:w-auto">Ajouter</button>
+                </form>
+                <ul id="incomes-list" class="space-y-2"></ul>
+            </div>
+        </div>
+
+        <!-- Tab: Dépenses Fixes -->
+        <div id="content-dépenses-fixes" class="tab-content hidden">
+            <div class="card">
+                <h2 class="text-xl font-bold mb-4">Gérer les dépenses fixes</h2>
+                <form id="fixed-expense-form" class="grid grid-cols-1 sm:grid-cols-4 items-end gap-2 mb-4">
+                    <div class="sm:col-span-2">
+                        <label for="fixed-name-input" class="text-sm font-medium">Nom</label>
+                        <input type="text" id="fixed-name-input" placeholder="Ex: Loyer" required>
+                    </div>
+                    <div>
+                        <label for="fixed-amount-input" class="text-sm font-medium">Montant</label>
+                        <input type="number" id="fixed-amount-input" placeholder="150,50" step="0.01" required>
+                    </div>
+                    <div>
+                        <label for="fixed-end-date-input" class="text-sm font-medium">Date de fin (optionnel)</label>
+                        <input type="month" id="fixed-end-date-input">
+                    </div>
+                    <button type="submit" class="btn btn-primary w-full sm:col-start-4">Ajouter</button>
+                </form>
+                <ul id="fixed-expenses-list" class="space-y-2"></ul>
+            </div>
+        </div>
+
+        <!-- Tab: Paramètres -->
+        <div id="content-paramètres" class="tab-content hidden">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Security Card -->
+                <div class="card">
+                    <h2 class="text-2xl font-bold mb-4">Sécurité</h2>
+                    <!-- Set Password Form -->
+                    <div id="set-password-section">
+                        <p class="text-sm mb-2" style="color: var(--muted-text-color);">Protégez vos données avec un mot de passe.</p>
+                        <div class="space-y-4">
+                            <div>
+                                <label for="new-password-input" class="block font-medium mb-1">Nouveau mot de passe</label>
+                                <input type="password" id="new-password-input" placeholder="••••••••">
+                            </div>
+                            <div>
+                                <label for="confirm-password-input" class="block font-medium mb-1">Confirmer le mot de passe</label>
+                                <input type="password" id="confirm-password-input" placeholder="••••••••">
+                            </div>
+                            <button id="save-password-btn" class="btn btn-primary w-full">Définir le mot de passe</button>
+                        </div>
+                    </div>
+                    <!-- Remove Password Form -->
+                    <div id="remove-password-section" class="hidden">
+                        <p class="text-sm mb-2" style="color: var(--muted-text-color);">Votre application est protégée par un mot de passe.</p>
+                        <div class="space-y-4">
+                            <div>
+                                <label for="current-password-input" class="block font-medium mb-1">Mot de passe actuel</label>
+                                <input type="password" id="current-password-input" placeholder="••••••••">
+                            </div>
+                            <button id="remove-password-btn" class="btn btn-danger w-full">Supprimer le mot de passe</button>
+                        </div>
+                    </div>
+                </div>
+                <!-- Appearance Card -->
+                <div class="card">
+                    <h2 class="text-2xl font-bold mb-4">Apparence</h2>
+                    <div class="flex justify-between items-center">
+                        <span class="font-medium">Mode Sombre</span>
+                        <label class="switch">
+                            <input type="checkbox" id="dark-mode-toggle">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+                <!-- Share & Support Card -->
+                <div class="card md:col-span-2">
+                    <h2 class="text-2xl font-bold mb-4">Partage & Soutien</h2>
+                    <div class="space-y-4">
+                        <button id="share-btn" class="btn btn-secondary w-full">Partager à un ami</button>
+                        <a href="https://paypal.me/votreLien" target="_blank" class="btn btn-primary w-full block">Faire un don ❤️</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- Modals -->
+<div id="password-modal" class="modal-overlay fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center p-4 z-50">
+    <div class="modal-content bg-white rounded-lg shadow-xl p-6 w-full max-w-sm" style="background-color: var(--card-bg-color);">
+        <form id="password-form">
+            <h2 class="text-2xl font-bold mb-4">Veuillez entrer le mot de passe</h2>
+            <input type="password" id="password-prompt-input" class="w-full" required>
+            <p id="password-error" class="text-red-500 text-sm mt-2 hidden">Mot de passe incorrect.</p>
+            <button type="submit" class="btn btn-primary w-full mt-4">Déverrouiller</button>
+        </form>
+    </div>
+</div>
+
+<div id="expenses-modal" class="modal-overlay fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4 z-50 opacity-0">
+    <div class="modal-content bg-white rounded-lg shadow-xl p-6 w-full max-w-md transform scale-95" style="background-color: var(--card-bg-color);">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-2xl font-bold">Détail des Dépenses</h2>
+            <button id="close-expenses-modal-btn" class="text-gray-500 hover:text-gray-800 text-3xl leading-none">&times;</button>
+        </div>
+        <div class="space-y-4">
+            <div class="flex justify-between items-center p-3 rounded-lg" style="background-color: var(--bg-color);">
+                <span class="text-lg">Dépenses Fixes :</span>
+                <span id="modal-fixed-total" class="text-lg font-bold text-orange-500">0.00 €</span>
+            </div>
+            <div class="flex justify-between items-center p-3 rounded-lg" style="background-color: var(--bg-color);">
+                <span class="text-lg">Dépenses Variables :</span>
+                <span id="modal-variable-total" class="text-lg font-bold text-red-500">0.00 €</span>
+            </div>
+            <hr style="border-color: var(--border-color);"/>
+            <div class="flex justify-between items-center p-3">
+                <span class="text-xl font-bold">Total Général :</span>
+                <span id="modal-grand-total" class="text-xl font-bold">0.00 €</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="create-sheet-modal" class="modal-overlay fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4 z-50 opacity-0">
+    <div class="modal-content bg-white rounded-lg shadow-xl p-6 w-full max-w-md transform scale-95" style="background-color: var(--card-bg-color);">
+        <form id="create-sheet-form">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold">Créer une feuille</h2>
+                <button type="button" id="close-create-sheet-modal-btn" class="text-gray-500 hover:text-gray-800 text-3xl leading-none">&times;</button>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label for="month-select" class="block font-medium mb-1">Mois</label>
+                    <select id="month-select" required></select>
+                </div>
+                <div>
+                    <label for="year-input" class="block font-medium mb-1">Année</label>
+                    <input type="number" id="year-input" placeholder="AAAA" required class="w-full">
+                </div>
+            </div>
+            <div class="mt-6">
+                <button type="submit" class="btn btn-primary w-full">Créer la feuille</button>
+            </div>
+        </form>
+    </div>
+</div>
+<script src="assets/script.js"></script>
+</body>
+</html>
